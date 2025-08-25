@@ -4,16 +4,17 @@ import { notFound } from "next/navigation";
 import IndustryPageLayout from "@/components/IndustryPageLayout";
 import { INDUSTRY_BY_SLUG, SLUGS, type Industry } from "@/lib/industries.config";
 
-type PageProps = { params: { slug: string } };
-
 export const dynamicParams = false;
 
 export function generateStaticParams() {
   return SLUGS.map((slug) => ({ slug }));
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const d = INDUSTRY_BY_SLUG[params.slug] as Industry | undefined;
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  const { slug } = await params;
+  const d = INDUSTRY_BY_SLUG[slug] as Industry | undefined;
   if (!d) return { title: "Industry Not Found", robots: { index: false } };
 
   const title = d.seo?.title ?? `${d.title} | Consulting-First Automation`;
@@ -24,14 +25,17 @@ export function generateMetadata({ params }: PageProps): Metadata {
     title,
     description,
     keywords,
-    alternates: { canonical: `/industries/${params.slug}` },
-    openGraph: { title, description, url: `/industries/${params.slug}`, type: "article" },
+    alternates: { canonical: `/industries/${slug}` },
+    openGraph: { title, description, url: `/industries/${slug}`, type: "article" },
     twitter: { card: "summary_large_image", title, description },
   };
 }
 
-export default function Page({ params }: PageProps) {
-  const data = INDUSTRY_BY_SLUG[params.slug];
+export default async function Page(
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params;
+  const data = INDUSTRY_BY_SLUG[slug];
   if (!data) return notFound();
   return <IndustryPageLayout data={data} />;
 }
