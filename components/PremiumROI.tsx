@@ -1,27 +1,24 @@
+// components/PremiumROI.tsx
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
 
-/* =========================================================================
-   Helpers
-   ========================================================================= */
+/* =========================
+   Small helpers
+   ========================= */
 const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(isFinite(n) ? n : 0);
-
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+    isFinite(n) ? n : 0
+  );
 const fmtInt = (n: number) => (isFinite(n) ? Math.round(n).toLocaleString() : "0");
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const WORKING_DAYS = 22;
 const WEEKS_PER_MONTH = 4.33;
 
-/* =========================================================================
-   Industries & Field Specs
-   ========================================================================= */
+/* =========================
+   Industry config
+   ========================= */
 type Industry = "healthcare" | "home_services" | "legal" | "agency" | "back_office_ops";
-
 const INDUSTRY_LABELS: Record<Industry, string> = {
   healthcare: "Healthcare / Med Spa / Dental",
   home_services: "High-Ticket Home Services",
@@ -32,7 +29,6 @@ const INDUSTRY_LABELS: Record<Industry, string> = {
 
 type FieldType = "number" | "currency" | "percent" | "time";
 type FieldGroup = "Volume" | "Tasks" | "Performance" | "Value" | "Costs";
-
 type FieldSpec = {
   id: string;
   label: string;
@@ -44,124 +40,313 @@ type FieldSpec = {
   suffix?: string;
   hint?: string;
 };
-
 type FieldValues = Record<string, number>;
 
-/**
- * Each industry includes:
- * - Staff counts for the relevant team
- * - Daily/Weekly/Monthly task hours (per staff where applicable)
- * - Performance + value levers used for revenue lift
- */
 const FIELDS: Record<Industry, FieldSpec[]> = {
   healthcare: [
-    // Volume
-    { id: "inquiries", label: "Monthly Inquiries", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
-    { id: "appointments", label: "Monthly Appointments", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
+    { id: "inquiries", label: "Monthly Inquiries", group: "Volume", type: "number", min: 0, max: 100000 },
+    { id: "appointments", label: "Monthly Appointments", group: "Volume", type: "number", min: 0, max: 100000 },
 
-    // Tasks + staff
-    { id: "staffCount", label: "Admin / Front Desk Staff", group: "Tasks", type: "number", min: 0, max: 500, step: 1 },
-    { id: "dailyAdminHrs", label: "Daily Admin Hours per Staff", group: "Tasks", type: "time", min: 0, max: 24, step: 0.25, suffix: "hrs/day/staff", hint: "Confirmations, reminders, scheduling, insurance, billing" },
-    { id: "weeklyBillingHrs", label: "Weekly Billing / Collections", group: "Tasks", type: "time", min: 0, max: 60, step: 0.25, suffix: "hrs/wk", hint: "Insurance claims, payment follow-ups" },
-    { id: "monthlyFollowupHrs", label: "Monthly Follow-up Hours", group: "Tasks", type: "time", min: 0, max: 400, step: 0.25, suffix: "hrs/mo", hint: "Treatment reminders, annual checkups, post-care calls" },
+    { id: "staffCount", label: "Admin / Front Desk Staff", group: "Tasks", type: "number", min: 0, max: 500 },
+    {
+      id: "dailyAdminHrs",
+      label: "Daily Admin Hours per Staff",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 24,
+      step: 0.25,
+      suffix: "hrs/day/staff",
+      hint: "Confirmations, reminders, scheduling, insurance, billing",
+    },
+    {
+      id: "weeklyBillingHrs",
+      label: "Weekly Billing / Collections",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 60,
+      step: 0.25,
+      suffix: "hrs/wk",
+      hint: "Insurance claims, payment follow-ups",
+    },
+    {
+      id: "monthlyFollowupHrs",
+      label: "Monthly Follow-up Hours",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 400,
+      step: 0.25,
+      suffix: "hrs/mo",
+      hint: "Treatment reminders, annual checkups, post-care calls",
+    },
 
-    // Performance
-    { id: "responseMins", label: "Response Time (minutes)", group: "Performance", type: "number", min: 0, max: 480, step: 1 },
-    { id: "bookRate", label: "Booking Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "showRate", label: "Show Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "acceptRate", label: "Treatment Acceptance", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
+    { id: "responseMins", label: "Response Time (minutes)", group: "Performance", type: "number", min: 0, max: 480 },
+    { id: "bookRate", label: "Booking Rate", group: "Performance", type: "percent", min: 1, max: 100, suffix: "%" },
+    { id: "showRate", label: "Show Rate", group: "Performance", type: "percent", min: 1, max: 100, suffix: "%" },
+    {
+      id: "acceptRate",
+      label: "Treatment Acceptance",
+      group: "Performance",
+      type: "percent",
+      min: 1,
+      max: 100,
+      suffix: "%",
+    },
 
-    // Value & Costs
     { id: "avgCase", label: "Average Case Value", group: "Value", type: "currency", min: 0, max: 1000000, step: 50 },
-    { id: "hourly", label: "Fully-Loaded Hourly (Admin Blend)", group: "Costs", type: "currency", min: 0, max: 500, step: 1, hint: "Wages + benefits + taxes" },
+    {
+      id: "hourly",
+      label: "Fully-Loaded Hourly (Admin Blend)",
+      group: "Costs",
+      type: "currency",
+      min: 0,
+      max: 500,
+      step: 1,
+      hint: "Wages + benefits + taxes",
+    },
   ],
 
   home_services: [
-    // Volume
-    { id: "leads", label: "Monthly Leads", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
-    { id: "estimates", label: "Monthly Estimates / Consults", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
+    { id: "leads", label: "Monthly Leads", group: "Volume", type: "number", min: 0, max: 100000 },
+    { id: "estimates", label: "Monthly Estimates / Consults", group: "Volume", type: "number", min: 0, max: 100000 },
 
-    // Tasks + staff
-    { id: "staffCount", label: "Office / Admin Staff", group: "Tasks", type: "number", min: 0, max: 500, step: 1 },
-    { id: "dailyAdminHrs", label: "Daily Admin Hours per Staff", group: "Tasks", type: "time", min: 0, max: 24, step: 0.25, suffix: "hrs/day/staff", hint: "Scheduling, customer updates, permit tracking" },
-    { id: "weeklyCoordHrs", label: "Weekly Job Coordination", group: "Tasks", type: "time", min: 0, max: 60, step: 0.25, suffix: "hrs/wk", hint: "Materials, crew scheduling, status updates" },
-    { id: "monthlyFollowupHrs", label: "Monthly Customer Follow-up", group: "Tasks", type: "time", min: 0, max: 400, step: 0.25, suffix: "hrs/mo", hint: "Maintenance reminders, seasonal outreach, warranties" },
+    { id: "staffCount", label: "Office / Admin Staff", group: "Tasks", type: "number", min: 0, max: 500 },
+    {
+      id: "dailyAdminHrs",
+      label: "Daily Admin Hours per Staff",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 24,
+      step: 0.25,
+      suffix: "hrs/day/staff",
+      hint: "Scheduling, customer updates, permit tracking",
+    },
+    {
+      id: "weeklyCoordHrs",
+      label: "Weekly Job Coordination",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 60,
+      step: 0.25,
+      suffix: "hrs/wk",
+      hint: "Materials, crew scheduling, status updates",
+    },
+    {
+      id: "monthlyFollowupHrs",
+      label: "Monthly Customer Follow-up",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 400,
+      step: 0.25,
+      suffix: "hrs/mo",
+      hint: "Maintenance, seasonal outreach, warranties",
+    },
 
-    // Performance
-    { id: "speedToLead", label: "Speed-to-Lead (minutes)", group: "Performance", type: "number", min: 0, max: 480, step: 1 },
-    { id: "setRate", label: "Consultation Set Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "showRate", label: "Consultation Show Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "closeRate", label: "Close Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
+    { id: "speedToLead", label: "Speed-to-Lead (minutes)", group: "Performance", type: "number", min: 0, max: 480 },
+    {
+      id: "setRate",
+      label: "Consultation Set Rate",
+      group: "Performance",
+      type: "percent",
+      min: 1,
+      max: 100,
+      suffix: "%",
+    },
+    {
+      id: "showRate",
+      label: "Consultation Show Rate",
+      group: "Performance",
+      type: "percent",
+      min: 1,
+      max: 100,
+      suffix: "%",
+    },
+    { id: "closeRate", label: "Close Rate", group: "Performance", type: "percent", min: 1, max: 100, suffix: "%" },
 
-    // Value & Costs
     { id: "avgJob", label: "Average Job Value", group: "Value", type: "currency", min: 0, max: 1000000, step: 100 },
-    { id: "hourly", label: "Ops/Admin Hourly (Fully-Loaded)", group: "Costs", type: "currency", min: 0, max: 500, step: 1 },
+    { id: "hourly", label: "Ops/Admin Hourly (Fully-Loaded)", group: "Costs", type: "currency", min: 0, max: 500 },
   ],
 
   legal: [
-    // Volume
-    { id: "inquiries", label: "Monthly Inquiries", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
-    { id: "consultations", label: "Monthly Consultations", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
+    { id: "inquiries", label: "Monthly Inquiries", group: "Volume", type: "number", min: 0, max: 100000 },
+    { id: "consultations", label: "Monthly Consultations", group: "Volume", type: "number", min: 0, max: 100000 },
 
-    // Tasks + staff
-    { id: "staffCount", label: "Paralegal / Admin Staff", group: "Tasks", type: "number", min: 0, max: 500, step: 1 },
-    { id: "dailyAdminHrs", label: "Daily Admin Hours per Staff", group: "Tasks", type: "time", min: 0, max: 24, step: 0.25, suffix: "hrs/day/staff", hint: "Document prep, court scheduling, client updates" },
-    { id: "weeklyDocHrs", label: "Weekly Document Processing", group: "Tasks", type: "time", min: 0, max: 60, step: 0.25, suffix: "hrs/wk", hint: "Filing, research, forms" },
-    { id: "monthlyClientHrs", label: "Monthly Client Communications", group: "Tasks", type: "time", min: 0, max: 400, step: 0.25, suffix: "hrs/mo", hint: "Status updates, billing calls, case explanations" },
+    { id: "staffCount", label: "Paralegal / Admin Staff", group: "Tasks", type: "number", min: 0, max: 500 },
+    {
+      id: "dailyAdminHrs",
+      label: "Daily Admin Hours per Staff",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 24,
+      step: 0.25,
+      suffix: "hrs/day/staff",
+      hint: "Document prep, court scheduling, client updates",
+    },
+    {
+      id: "weeklyDocHrs",
+      label: "Weekly Document Processing",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 60,
+      step: 0.25,
+      suffix: "hrs/wk",
+      hint: "Filing, research, forms",
+    },
+    {
+      id: "monthlyClientHrs",
+      label: "Monthly Client Communications",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 400,
+      step: 0.25,
+      suffix: "hrs/mo",
+      hint: "Status updates, billing calls, case explanations",
+    },
 
-    // Performance
-    { id: "responseMins", label: "Response Time (minutes)", group: "Performance", type: "number", min: 0, max: 480, step: 1 },
-    { id: "consultSet", label: "Consultation Set Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "consultShow", label: "Consultation Show Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "matterOpen", label: "Matter Open Rate (from consults)", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
+    { id: "responseMins", label: "Response Time (minutes)", group: "Performance", type: "number", min: 0, max: 480 },
+    {
+      id: "consultSet",
+      label: "Consultation Set Rate",
+      group: "Performance",
+      type: "percent",
+      min: 1,
+      max: 100,
+      suffix: "%",
+    },
+    {
+      id: "consultShow",
+      label: "Consultation Show Rate",
+      group: "Performance",
+      type: "percent",
+      min: 1,
+      max: 100,
+      suffix: "%",
+    },
+    {
+      id: "matterOpen",
+      label: "Matter Open Rate (from consults)",
+      group: "Performance",
+      type: "percent",
+      min: 1,
+      max: 100,
+      suffix: "%",
+    },
 
-    // Value & Costs
-    { id: "avgRetainer", label: "Average Case / Initial Retainer", group: "Value", type: "currency", min: 0, max: 1000000, step: 100 },
-    { id: "hourly", label: "Fully-Loaded Hourly (Paralegal Blend)", group: "Costs", type: "currency", min: 0, max: 500, step: 1 },
+    { id: "avgRetainer", label: "Average Case / Initial Retainer", group: "Value", type: "currency", min: 0, max: 1000000 },
+    {
+      id: "hourly",
+      label: "Fully-Loaded Hourly (Paralegal Blend)",
+      group: "Costs",
+      type: "currency",
+      min: 0,
+      max: 500,
+    },
   ],
 
   agency: [
-    // Volume
-    { id: "qualifiedInbound", label: "Qualified Inbound / Month", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
-    { id: "meetings", label: "Monthly Discovery Calls", group: "Volume", type: "number", min: 0, max: 100000, step: 1 },
+    { id: "qualifiedInbound", label: "Qualified Inbound / Month", group: "Volume", type: "number", min: 0, max: 100000 },
+    { id: "meetings", label: "Monthly Discovery Calls", group: "Volume", type: "number", min: 0, max: 100000 },
 
-    // Tasks + staff
-    { id: "staffCount", label: "BDR / Admin Staff", group: "Tasks", type: "number", min: 0, max: 500, step: 1 },
-    { id: "dailyAdminHrs", label: "Daily Admin Hours per Staff", group: "Tasks", type: "time", min: 0, max: 24, step: 0.25, suffix: "hrs/day/staff", hint: "CRM updates, onboarding, comms" },
-    { id: "weeklyProposalHrs", label: "Weekly Proposal / SOW Creation", group: "Tasks", type: "time", min: 0, max: 60, step: 0.25, suffix: "hrs/wk", hint: "Custom proposals, contracts" },
-    { id: "monthlyClientHrs", label: "Monthly Pipeline Follow-up", group: "Tasks", type: "time", min: 0, max: 400, step: 0.25, suffix: "hrs/mo", hint: "Nurturing, check-ins, upsell" },
+    { id: "staffCount", label: "BDR / Admin Staff", group: "Tasks", type: "number", min: 0, max: 500 },
+    {
+      id: "dailyAdminHrs",
+      label: "Daily Admin Hours per Staff",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 24,
+      step: 0.25,
+      suffix: "hrs/day/staff",
+      hint: "CRM updates, onboarding, comms",
+    },
+    {
+      id: "weeklyProposalHrs",
+      label: "Weekly Proposal / SOW Creation",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 60,
+      step: 0.25,
+      suffix: "hrs/wk",
+      hint: "Custom proposals, contracts",
+    },
+    {
+      id: "monthlyClientHrs",
+      label: "Monthly Pipeline Follow-up",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 400,
+      step: 0.25,
+      suffix: "hrs/mo",
+      hint: "Nurturing, check-ins, upsell",
+    },
 
-    // Performance
-    { id: "responseMins", label: "Response Time (minutes)", group: "Performance", type: "number", min: 0, max: 480, step: 1 },
-    { id: "meetingRate", label: "Meeting Set Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "meetingShow", label: "Meeting Show Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
-    { id: "winRate", label: "Win Rate", group: "Performance", type: "percent", min: 1, max: 100, step: 1, suffix: "%" },
+    { id: "responseMins", label: "Response Time (minutes)", group: "Performance", type: "number", min: 0, max: 480 },
+    { id: "meetingRate", label: "Meeting Set Rate", group: "Performance", type: "percent", min: 1, max: 100, suffix: "%" },
+    { id: "meetingShow", label: "Meeting Show Rate", group: "Performance", type: "percent", min: 1, max: 100, suffix: "%" },
+    { id: "winRate", label: "Win Rate", group: "Performance", type: "percent", min: 1, max: 100, suffix: "%" },
 
-    // Value & Costs
-    { id: "avgDeal", label: "Average Deal Value (first 90 days)", group: "Value", type: "currency", min: 0, max: 1000000, step: 100 },
-    { id: "hourly", label: "Ops/Admin Hourly (Fully-Loaded)", group: "Costs", type: "currency", min: 0, max: 500, step: 1 },
+    { id: "avgDeal", label: "Average Deal Value (first 90 days)", group: "Value", type: "currency", min: 0, max: 1000000 },
+    { id: "hourly", label: "Ops/Admin Hourly (Fully-Loaded)", group: "Costs", type: "currency", min: 0, max: 500 },
   ],
 
   back_office_ops: [
-    // Volume
-    { id: "items", label: "Monthly Items / Tasks", group: "Volume", type: "number", min: 0, max: 1000000, step: 1 },
+    { id: "items", label: "Monthly Items / Tasks", group: "Volume", type: "number", min: 0, max: 1000000 },
 
-    // Tasks + staff
-    { id: "staffCount", label: "Processing Staff", group: "Tasks", type: "number", min: 0, max: 500, step: 1 },
-    { id: "dailyAdminHrs", label: "Daily Admin Hours per Staff", group: "Tasks", type: "time", min: 0, max: 24, step: 0.25, suffix: "hrs/day/staff", hint: "Data entry, validation, corrections" },
-    { id: "weeklyQAHrs", label: "Weekly QA / Review", group: "Tasks", type: "time", min: 0, max: 60, step: 0.25, suffix: "hrs/wk", hint: "Quality checks, audits" },
-    { id: "weeklyReportingHrs", label: "Weekly Reporting", group: "Tasks", type: "time", min: 0, max: 60, step: 0.25, suffix: "hrs/wk", hint: "Dashboards, client reports" },
+    { id: "staffCount", label: "Processing Staff", group: "Tasks", type: "number", min: 0, max: 500 },
+    {
+      id: "dailyAdminHrs",
+      label: "Daily Admin Hours per Staff",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 24,
+      step: 0.25,
+      suffix: "hrs/day/staff",
+      hint: "Data entry, validation, corrections",
+    },
+    {
+      id: "weeklyQAHrs",
+      label: "Weekly QA / Review",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 60,
+      step: 0.25,
+      suffix: "hrs/wk",
+      hint: "Quality checks, audits",
+    },
+    {
+      id: "weeklyReportingHrs",
+      label: "Weekly Reporting",
+      group: "Tasks",
+      type: "time",
+      min: 0,
+      max: 60,
+      step: 0.25,
+      suffix: "hrs/wk",
+      hint: "Dashboards, client reports",
+    },
 
-    // Performance
     { id: "errorRate", label: "Current Error Rate", group: "Performance", type: "percent", min: 0, max: 100, step: 0.1, suffix: "%" },
 
-    // Value & Costs
     { id: "costPerError", label: "Cost per Error", group: "Value", type: "currency", min: 0, max: 100000, step: 10 },
-    { id: "hourly", label: "Fully-Loaded Hourly", group: "Costs", type: "currency", min: 0, max: 500, step: 1 },
+    { id: "hourly", label: "Fully-Loaded Hourly", group: "Costs", type: "currency", min: 0, max: 500 },
   ],
 };
 
-/* Default values */
+/* =========================
+   Defaults (conservative)
+   ========================= */
 const DEFAULTS: Record<Industry, FieldValues> = {
   healthcare: {
     inquiries: 150,
@@ -231,37 +416,67 @@ const DEFAULTS: Record<Industry, FieldValues> = {
   },
 };
 
-/* Impact calculation assumptions */
-const ASSUMPTIONS = {
-  // Automation efficiency by cadence
-  dailyAutomation: 0.7,
-  weeklyAutomation: 0.6,
-  monthlyAutomation: 0.5,
-
-  healthcare: {
-    maxBookingLift: 0.25,
-    noShowRecovery: 0.2,
+/* =========================
+   Assumption profiles
+   ========================= */
+type ProfileKey = "conservative" | "realistic" | "aggressive";
+const PROFILES: Record<
+  ProfileKey,
+  {
+    automationDaily: number;
+    automationWeekly: number;
+    automationMonthly: number;
+    // lift slope (diminishing) and caps
+    lifts: {
+      healthcare: { maxBookingLift: number; noShowRecovery: number; revenueCapPctOfBaseline: number };
+      home_services: { maxSetRateLift: number; recoveredLeadFactor: number; revenueCapPctOfBaseline: number };
+      legal: { maxSetRateLift: number; recoveredNoShow: number; revenueCapPctOfBaseline: number };
+      agency: { maxMeetingLift: number; recoveredNotSet: number; revenueCapPctOfBaseline: number };
+      back_office_ops: { errorReduction: number };
+    };
+  }
+> = {
+  conservative: {
+    automationDaily: 0.55,
+    automationWeekly: 0.45,
+    automationMonthly: 0.35,
+    lifts: {
+      healthcare: { maxBookingLift: 0.12, noShowRecovery: 0.08, revenueCapPctOfBaseline: 0.25 },
+      home_services: { maxSetRateLift: 0.20, recoveredLeadFactor: 0.10, revenueCapPctOfBaseline: 0.25 },
+      legal: { maxSetRateLift: 0.12, recoveredNoShow: 0.08, revenueCapPctOfBaseline: 0.25 },
+      agency: { maxMeetingLift: 0.12, recoveredNotSet: 0.08, revenueCapPctOfBaseline: 0.25 },
+      back_office_ops: { errorReduction: 0.6 },
+    },
   },
-  home_services: {
-    maxSetRateLift: 0.35,
-    recoveredLeadFactor: 0.18,
+  realistic: {
+    automationDaily: 0.65,
+    automationWeekly: 0.55,
+    automationMonthly: 0.45,
+    lifts: {
+      healthcare: { maxBookingLift: 0.18, noShowRecovery: 0.12, revenueCapPctOfBaseline: 0.35 },
+      home_services: { maxSetRateLift: 0.28, recoveredLeadFactor: 0.14, revenueCapPctOfBaseline: 0.35 },
+      legal: { maxSetRateLift: 0.18, recoveredNoShow: 0.12, revenueCapPctOfBaseline: 0.35 },
+      agency: { maxMeetingLift: 0.18, recoveredNotSet: 0.12, revenueCapPctOfBaseline: 0.35 },
+      back_office_ops: { errorReduction: 0.7 },
+    },
   },
-  legal: {
-    maxSetRateLift: 0.2,
-    recoveredNoShow: 0.15,
-  },
-  agency: {
-    maxMeetingLift: 0.2,
-    recoveredNotSet: 0.12,
-  },
-  back_office_ops: {
-    errorReduction: 0.8,
+  aggressive: {
+    automationDaily: 0.75,
+    automationWeekly: 0.65,
+    automationMonthly: 0.55,
+    lifts: {
+      healthcare: { maxBookingLift: 0.25, noShowRecovery: 0.18, revenueCapPctOfBaseline: 0.45 },
+      home_services: { maxSetRateLift: 0.35, recoveredLeadFactor: 0.18, revenueCapPctOfBaseline: 0.45 },
+      legal: { maxSetRateLift: 0.25, recoveredNoShow: 0.18, revenueCapPctOfBaseline: 0.45 },
+      agency: { maxMeetingLift: 0.25, recoveredNotSet: 0.18, revenueCapPctOfBaseline: 0.45 },
+      back_office_ops: { errorReduction: 0.8 },
+    },
   },
 };
 
-/* =========================================================================
-   Impact Calculator
-   ========================================================================= */
+/* =========================
+   Impact calculation
+   ========================= */
 type Impact = {
   monthlyHoursSaved: number;
   staffCostSavings: number;
@@ -270,47 +485,53 @@ type Impact = {
   annualImpact: number;
   breakdown: Record<string, number>;
   assumptions: string[];
+  baselineRevenue: number;
 };
 
-function computeImpact(industry: Industry, v: FieldValues): Impact {
-  const A = ASSUMPTIONS;
+function computeImpact(industry: Industry, v: FieldValues, profile: ProfileKey): Impact {
+  const P = PROFILES[profile];
 
-  // shared automation math for task-hours
+  // Shared hours math
   const staff = v.staffCount || 0;
 
   const dailyHours = (v.dailyAdminHrs || 0) * WORKING_DAYS * staff;
-  const weeklyHours =
+  const weeklyHoursOnly =
+    (industry === "healthcare" ? (v.weeklyBillingHrs || 0) : 0) +
     (industry === "home_services" ? (v.weeklyCoordHrs || 0) : 0) +
     (industry === "legal" ? (v.weeklyDocHrs || 0) : 0) +
     (industry === "agency" ? (v.weeklyProposalHrs || 0) : 0) +
     (industry === "back_office_ops" ? (v.weeklyQAHrs || 0) + (v.weeklyReportingHrs || 0) : 0);
 
-  const weeklyHoursTotal = weeklyHours * WEEKS_PER_MONTH * staff;
+  const weeklyHours = weeklyHoursOnly * WEEKS_PER_MONTH * staff;
 
-  const monthlyHours =
+  const monthlyHoursOnly =
     (industry === "healthcare" ? (v.monthlyFollowupHrs || 0) : 0) +
     (industry === "home_services" ? (v.monthlyFollowupHrs || 0) : 0) +
     (industry === "legal" ? (v.monthlyClientHrs || 0) : 0) +
     (industry === "agency" ? (v.monthlyClientHrs || 0) : 0);
 
-  const monthlyHoursTotal = monthlyHours * staff;
+  const monthlyHours = monthlyHoursOnly * staff;
 
-  const automatedDaily = dailyHours * A.dailyAutomation;
-  const automatedWeekly = weeklyHoursTotal * A.weeklyAutomation;
-  const automatedMonthly = monthlyHoursTotal * A.monthlyAutomation;
+  const automatedDaily = dailyHours * P.automationDaily;
+  const automatedWeekly = weeklyHours * P.automationWeekly;
+  const automatedMonthly = monthlyHours * P.automationMonthly;
 
   const automatedHours = automatedDaily + automatedWeekly + automatedMonthly;
   const staffSavings = automatedHours * (v.hourly || 0);
 
-  // industry-specific revenue lift
+  // Baseline revenue per month (used for caps)
+  let baselineRevenue = 0;
+
+  // Industry revenue lift (with diminishing effect and caps)
   let revenue = 0;
   const breakdown: Record<string, number> = {
     "Daily admin (automated hrs)": Math.round(automatedDaily),
     "Weekly tasks (automated hrs)": Math.round(automatedWeekly),
     "Monthly tasks (automated hrs)": Math.round(automatedMonthly),
   };
+
   const assumptions: string[] = [
-    "70% daily, 60% weekly, 50% monthly automation",
+    `Automation: ${Math.round(P.automationDaily * 100)}% daily, ${Math.round(P.automationWeekly * 100)}% weekly, ${Math.round(P.automationMonthly * 100)}% monthly`,
   ];
 
   switch (industry) {
@@ -319,23 +540,36 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
       const baseBook = (v.bookRate || 0) / 100;
       const show = (v.showRate || 0) / 100;
       const accept = (v.acceptRate || 0) / 100;
-      // faster response → booking lift up to max
-      const liftPct = clamp01((v.responseMins || 0) / 60) * A.healthcare.maxBookingLift;
+
+      // Baseline revenue (approx): bookings * show * accept * avgCase
+      const baselineAccepted = inquiries * baseBook * show * accept;
+      baselineRevenue = baselineAccepted * (v.avgCase || 0);
+
+      // Diminishing lift curve based on response time (faster => closer to max)
+      const timeFactor = clamp01((v.responseMins || 0) / 60); // 0..1 for 0–60m
+      const liftPct = (1 - timeFactor * 0.7) * P.lifts.healthcare.maxBookingLift; // diminish 30%
       const improvedBook = Math.min(0.95, baseBook * (1 + liftPct));
-      const addedBookings = inquiries * (improvedBook - baseBook);
+
+      const addedBookings = Math.max(0, inquiries * (improvedBook - baseBook));
       const baseNoShows = inquiries * baseBook * (1 - show);
-      const recoveredShows = baseNoShows * A.healthcare.noShowRecovery;
+      const recoveredShows = baseNoShows * P.lifts.healthcare.noShowRecovery;
+
       const addedAccepted = addedBookings * show * accept;
       const recoveredAccepted = recoveredShows * accept;
-      revenue = (addedAccepted + recoveredAccepted) * (v.avgCase || 0);
+      let rawRevenue = (addedAccepted + recoveredAccepted) * (v.avgCase || 0);
+
+      // Cap revenue lift vs baseline
+      const cap = (P.lifts.healthcare.revenueCapPctOfBaseline || 0.25) * (baselineRevenue || 1);
+      revenue = Math.min(rawRevenue, isFinite(cap) ? cap : rawRevenue);
 
       breakdown["Added bookings"] = Math.round(addedBookings);
       breakdown["Recovered no-shows"] = Math.round(recoveredShows);
       breakdown["Accepted treatments"] = Math.round(addedAccepted + recoveredAccepted);
 
       assumptions.push(
-        `Up to ${Math.round(A.healthcare.maxBookingLift * 100)}% booking lift from instant response`,
-        `${Math.round(A.healthcare.noShowRecovery * 100)}% no-show recovery via reminders`
+        `Up to ${Math.round(P.lifts.healthcare.maxBookingLift * 100)}% booking lift (diminishing with longer response times)`,
+        `${Math.round(P.lifts.healthcare.noShowRecovery * 100)}% no-show recovery`,
+        `Revenue lift capped at ${Math.round(P.lifts.healthcare.revenueCapPctOfBaseline * 100)}% of current baseline`
       );
       break;
     }
@@ -345,21 +579,32 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
       const baseSet = (v.setRate || 0) / 100;
       const show = (v.showRate || 0) / 100;
       const close = (v.closeRate || 0) / 100;
-      const lift = clamp01((v.speedToLead || 0) / 60) * A.home_services.maxSetRateLift;
+
+      // Baseline revenue: sets * show * close * avgJob
+      const baselineWins = leads * baseSet * show * close;
+      baselineRevenue = baselineWins * (v.avgJob || 0);
+
+      const timeFactor = clamp01((v.speedToLead || 0) / 60);
+      const lift = (1 - timeFactor * 0.7) * P.lifts.home_services.maxSetRateLift;
       const improvedSet = Math.min(0.95, baseSet * (1 + lift));
-      const addedSets = leads * (improvedSet - baseSet);
-      const recoveredLeads = leads * (1 - baseSet) * A.home_services.recoveredLeadFactor;
+
+      const addedSets = Math.max(0, leads * (improvedSet - baseSet));
+      const recoveredLeads = leads * (1 - baseSet) * P.lifts.home_services.recoveredLeadFactor;
       const totalConsults = (addedSets + recoveredLeads) * show;
       const addedWins = totalConsults * close;
-      revenue = addedWins * (v.avgJob || 0);
+      let rawRevenue = addedWins * (v.avgJob || 0);
+
+      const cap = P.lifts.home_services.revenueCapPctOfBaseline * (baselineRevenue || 1);
+      revenue = Math.min(rawRevenue, isFinite(cap) ? cap : rawRevenue);
 
       breakdown["Added consults"] = Math.round(addedSets);
       breakdown["Recovered leads"] = Math.round(recoveredLeads);
       breakdown["Additional wins"] = Math.round(addedWins);
 
       assumptions.push(
-        `Up to ${Math.round(A.home_services.maxSetRateLift * 100)}% set-rate lift from instant response`,
-        `${Math.round(A.home_services.recoveredLeadFactor * 100)}% missed-lead recovery via follow-ups`
+        `Up to ${Math.round(P.lifts.home_services.maxSetRateLift * 100)}% set-rate lift (diminishing with slower responses)`,
+        `${Math.round(P.lifts.home_services.recoveredLeadFactor * 100)}% missed-lead recovery`,
+        `Revenue lift capped at ${Math.round(P.lifts.home_services.revenueCapPctOfBaseline * 100)}% of current baseline`
       );
       break;
     }
@@ -367,24 +612,35 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
     case "legal": {
       const inquiries = v.inquiries || 0;
       const baseSet = (v.consultSet || 0) / 100;
-      const show = (v.consultShow || 85) / 100;
+      const show = (v.consultShow || 0.85) / 100;
       const openRate = (v.matterOpen || 0) / 100;
-      const lift = clamp01((v.responseMins || 0) / 60) * A.legal.maxSetRateLift;
+
+      const baselineMatters = inquiries * baseSet * show * openRate;
+      baselineRevenue = baselineMatters * (v.avgRetainer || 0);
+
+      const timeFactor = clamp01((v.responseMins || 0) / 60);
+      const lift = (1 - timeFactor * 0.7) * P.lifts.legal.maxSetRateLift;
       const improvedSet = Math.min(0.95, baseSet * (1 + lift));
-      const addedConsults = inquiries * (improvedSet - baseSet);
+
+      const addedConsults = Math.max(0, inquiries * (improvedSet - baseSet));
       const baseNoShows = inquiries * baseSet * (1 - show);
-      const recoveredConsults = baseNoShows * A.legal.recoveredNoShow;
+      const recoveredConsults = baseNoShows * P.lifts.legal.recoveredNoShow;
+
       const totalConsults = (addedConsults + recoveredConsults) * show;
       const addedMatters = totalConsults * openRate;
-      revenue = addedMatters * (v.avgRetainer || 0);
+      let rawRevenue = addedMatters * (v.avgRetainer || 0);
+
+      const cap = P.lifts.legal.revenueCapPctOfBaseline * (baselineRevenue || 1);
+      revenue = Math.min(rawRevenue, isFinite(cap) ? cap : rawRevenue);
 
       breakdown["Added consultations"] = Math.round(addedConsults);
       breakdown["Recovered no-shows"] = Math.round(recoveredConsults);
       breakdown["Matters opened"] = Math.round(addedMatters);
 
       assumptions.push(
-        `Up to ${Math.round(A.legal.maxSetRateLift * 100)}% consult set-rate lift from faster intake`,
-        `${Math.round(A.legal.recoveredNoShow * 100)}% no-show recovery via reminders`
+        `Up to ${Math.round(P.lifts.legal.maxSetRateLift * 100)}% consult set-rate lift (diminishing with slower intake)`,
+        `${Math.round(P.lifts.legal.recoveredNoShow * 100)}% no-show recovery`,
+        `Revenue lift capped at ${Math.round(P.lifts.legal.revenueCapPctOfBaseline * 100)}% of current baseline`
       );
       break;
     }
@@ -392,23 +648,33 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
     case "agency": {
       const inbound = v.qualifiedInbound || 0;
       const baseMeet = (v.meetingRate || 0) / 100;
-      const show = (v.meetingShow || 80) / 100;
+      const show = (v.meetingShow || 0.8) / 100;
       const win = (v.winRate || 0) / 100;
-      const lift = clamp01((v.responseMins || 0) / 60) * A.agency.maxMeetingLift;
+
+      const baselineWins = inbound * baseMeet * show * win;
+      baselineRevenue = baselineWins * (v.avgDeal || 0);
+
+      const timeFactor = clamp01((v.responseMins || 0) / 60);
+      const lift = (1 - timeFactor * 0.7) * P.lifts.agency.maxMeetingLift;
       const improvedMeet = Math.min(0.95, baseMeet * (1 + lift));
-      const addedMeetings = inbound * (improvedMeet - baseMeet);
-      const recovered = inbound * (1 - baseMeet) * A.agency.recoveredNotSet;
+
+      const addedMeetings = Math.max(0, inbound * (improvedMeet - baseMeet));
+      const recovered = inbound * (1 - baseMeet) * P.lifts.agency.recoveredNotSet;
       const meetingsHeld = (addedMeetings + recovered) * show;
       const addedWins = meetingsHeld * win;
-      revenue = addedWins * (v.avgDeal || 0);
+      let rawRevenue = addedWins * (v.avgDeal || 0);
+
+      const cap = P.lifts.agency.revenueCapPctOfBaseline * (baselineRevenue || 1);
+      revenue = Math.min(rawRevenue, isFinite(cap) ? cap : rawRevenue);
 
       breakdown["Added meetings"] = Math.round(addedMeetings);
       breakdown["Recovered not-set"] = Math.round(recovered);
       breakdown["Additional wins"] = Math.round(addedWins);
 
       assumptions.push(
-        `Up to ${Math.round(A.agency.maxMeetingLift * 100)}% meeting lift from instant response`,
-        `${Math.round(A.agency.recoveredNotSet * 100)}% recovered not-set via automation`
+        `Up to ${Math.round(P.lifts.agency.maxMeetingLift * 100)}% meeting lift (diminishing with slower response)`,
+        `${Math.round(P.lifts.agency.recoveredNotSet * 100)}% recovered not-set`,
+        `Revenue lift capped at ${Math.round(P.lifts.agency.revenueCapPctOfBaseline * 100)}% of current baseline`
       );
       break;
     }
@@ -416,15 +682,14 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
     case "back_office_ops": {
       const items = v.items || 0;
       const errors = items * ((v.errorRate || 0) / 100);
-      const errorsAvoided = errors * A.back_office_ops.errorReduction;
+      const errorsAvoided = errors * P.lifts.back_office_ops.errorReduction;
       const errorSavings = errorsAvoided * (v.costPerError || 0);
 
       breakdown["Items / month"] = Math.round(items);
       breakdown["Errors avoided"] = Math.round(errorsAvoided);
-      assumptions.push(`${Math.round(A.back_office_ops.errorReduction * 100)}% error reduction from automation`);
 
-      revenue = 0; // operational – savings only
-      // add error savings to staff savings
+      assumptions.push(`${Math.round(P.lifts.back_office_ops.errorReduction * 100)}% error reduction from automation`);
+
       return {
         monthlyHoursSaved: automatedHours,
         staffCostSavings: staffSavings + errorSavings,
@@ -433,6 +698,7 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
         annualImpact: (staffSavings + errorSavings) * 12,
         breakdown,
         assumptions,
+        baselineRevenue: 0,
       };
     }
   }
@@ -446,42 +712,43 @@ function computeImpact(industry: Industry, v: FieldValues): Impact {
     annualImpact: totalMonthlyImpact * 12,
     breakdown,
     assumptions,
+    baselineRevenue,
   };
 }
 
-/* =========================================================================
-   Main Component
-   ========================================================================= */
+/* =========================
+   Component
+   ========================= */
 export default function PremiumROI() {
   const [industry, setIndustry] = useState<Industry>("home_services");
   const [values, setValues] = useState<Record<Industry, FieldValues>>(DEFAULTS);
+  const [profile, setProfile] = useState<ProfileKey>("conservative");
+
+  // Pricing inputs (editable)
+  const [setupFee, setSetupFee] = useState<number>(5000);
+  const [monthlyFee, setMonthlyFee] = useState<number>(1000);
 
   const setField = (id: string, value: number) => {
-    setValues((prev) => ({
-      ...prev,
-      [industry]: { ...prev[industry], [id]: value },
-    }));
+    setValues((prev) => ({ ...prev, [industry]: { ...prev[industry], [id]: value } }));
   };
 
-  const impact = useMemo(() => computeImpact(industry, values[industry]), [industry, values]);
+  const impact = useMemo(() => computeImpact(industry, values[industry], profile), [industry, values, profile]);
 
-  // group fields for UI
+  // Time to ROI (months) — if net ≤ 0, show N/A
+  const netMonthly = impact.totalMonthlyImpact - monthlyFee;
+  const timeToROI = netMonthly > 0 ? Math.ceil(setupFee / netMonthly) : Infinity;
+
+  // Group fields (split long labels evenly across two columns on md+)
   const fieldsByGroup = useMemo(() => {
-    const fields = FIELDS[industry];
-    const groups: Record<FieldGroup, FieldSpec[]> = {
-      Volume: [],
-      Tasks: [],
-      Performance: [],
-      Value: [],
-      Costs: [],
-    };
-    fields.forEach((f) => groups[f.group].push(f));
+    const list = FIELDS[industry];
+    const groups: Record<FieldGroup, FieldSpec[]> = { Volume: [], Tasks: [], Performance: [], Value: [], Costs: [] };
+    list.forEach((f) => groups[f.group].push(f));
     return groups;
   }, [industry]);
 
   return (
     <section className="relative py-16">
-      {/* Ambient background glow */}
+      {/* Ambient background (match your brand) */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-[620px] w-[620px] rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.10),transparent_60%)]" />
         <div className="absolute top-40 -right-24 h-[360px] w-[140%] -rotate-[12deg] bg-[linear-gradient(90deg,transparent,rgba(168,85,247,0.08),transparent)]" />
@@ -489,15 +756,15 @@ export default function PremiumROI() {
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 md:mb-10 text-center">
+        <div className="mb-8 text-center">
           <h2 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-blue-700 via-purple-700 to-blue-700 bg-clip-text text-transparent">
             AI ROI Calculator
           </h2>
-          <p className="text-gray-900 mt-2">Estimate the revenue lift and cost savings from AI automation for your business.</p>
+          <p className="text-gray-900 mt-2">Estimate conservative savings & revenue lift from automation.</p>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-8">
+        {/* Profile + Tabs */}
+        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <IndustryTabs
             value={industry}
             onChange={(k) => setIndustry(k as Industry)}
@@ -509,13 +776,14 @@ export default function PremiumROI() {
               { key: "back_office_ops", label: INDUSTRY_LABELS.back_office_ops },
             ]}
           />
+          <ProfileToggle value={profile} onChange={setProfile} />
         </div>
 
-        {/* Container */}
-        <div className="grid md:grid-cols-12 gap-8">
-          {/* Inputs */}
+        {/* Two-column layout (no sticky; bottoms sit more flush) */}
+        <div className="grid md:grid-cols-12 gap-8 items-start">
+          {/* LEFT: Inputs */}
           <div className="md:col-span-6 lg:col-span-5">
-            <div className="bg-white/80 backdrop-blur-sm border-2 border-gray-200/60 rounded-3xl shadow-2xl p-6 md:p-7">
+            <div className="bg-white/80 backdrop-blur-sm border-2 border-gray-200/60 rounded-3xl shadow-2xl p-6 md:p-7 h-full">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Business Metrics</h3>
 
               <div className="space-y-7">
@@ -525,7 +793,8 @@ export default function PremiumROI() {
                   return (
                     <div key={group}>
                       <div className="text-[11px] font-semibold tracking-wide uppercase text-gray-700 mb-2">{group}</div>
-                      <div className="grid gap-4">
+                      {/* On md+: split into 2 columns for nicer wrapping */}
+                      <div className="grid gap-4 md:grid-cols-2">
                         {fields.map((f) => (
                           <InputField
                             key={f.id}
@@ -537,7 +806,18 @@ export default function PremiumROI() {
                       </div>
                       {group === "Tasks" && (
                         <div className="mt-3 p-3 rounded-xl border border-blue-200 bg-blue-50 text-[13px] text-blue-800">
-                          Automation model: <b>70%</b> of daily hours, <b>60%</b> of weekly hours, and <b>50%</b> of monthly hours are automatable.
+                          <b>
+                            {Math.round(PROFILES[profile].automationDaily * 100)}%
+                          </b>{" "}
+                          of daily,{" "}
+                          <b>
+                            {Math.round(PROFILES[profile].automationWeekly * 100)}%
+                          </b>{" "}
+                          of weekly, and{" "}
+                          <b>
+                            {Math.round(PROFILES[profile].automationMonthly * 100)}%
+                          </b>{" "}
+                          of monthly hours are automatable.
                         </div>
                       )}
                     </div>
@@ -547,63 +827,92 @@ export default function PremiumROI() {
             </div>
           </div>
 
-          {/* Results */}
+          {/* RIGHT: Results */}
           <div className="md:col-span-6 lg:col-span-7">
-            <div className="grid sm:grid-cols-2 gap-5">
-              <RoiStat title="Hours Saved / Month" value={`${fmtInt(impact.monthlyHoursSaved)} hrs`} tone="blue" />
-              <RoiStat title="Staff Cost Savings / Month" value={fmtCurrency(impact.staffCostSavings)} tone="green" />
-              <RoiStat title="Incremental Revenue / Month" value={fmtCurrency(impact.revenueLift)} tone="orange" />
-              {/* green emphasis as requested */}
-              <RoiStat title="Total Monthly Impact" value={fmtCurrency(impact.totalMonthlyImpact)} tone="green" emphasize />
-            </div>
-
-            {/* Breakdown */}
-            <div className="mt-6 rounded-2xl border-2 border-gray-200/60 bg-white/80 backdrop-blur-sm p-5 shadow-lg">
-              <div className="text-sm font-semibold text-gray-900 mb-2">Breakdown</div>
-              <div className="divide-y divide-gray-100">
-                {Object.entries(impact.breakdown).map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-gray-700">{k}</span>
-                    <span className="font-semibold text-gray-900">{fmtInt(v)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Annual & Assumptions */}
-            <div className="mt-6 grid sm:grid-cols-2 gap-5">
-              <div className="rounded-2xl border-2 border-gray-200/60 bg-gradient-to-br from-slate-50 to-gray-50 p-5 shadow-lg">
-                <div className="text-sm font-semibold text-gray-900 mb-1">Annual Impact</div>
-                <div className="text-2xl font-bold text-gray-900">{fmtCurrency(impact.annualImpact)}</div>
-                <div className="text-xs text-gray-600 mt-2">Total value delivered per year</div>
-              </div>
-
-              <div className="rounded-2xl border-2 border-gray-200/60 bg-white/80 backdrop-blur-sm p-5 shadow-lg">
-                <div className="text-sm font-semibold text-gray-900 mb-2">Assumptions</div>
-                <ul className="text-sm text-gray-700 space-y-1">
-                  {impact.assumptions.map((a, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="mt-[7px] inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      <span>{a}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* CTA */}
-            <div className="mt-6 rounded-2xl border-2 border-gray-200/60 bg-white/80 backdrop-blur-sm p-5 shadow-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">Ready to get precise numbers?</div>
-                  <div className="text-sm text-gray-600">We’ll validate these assumptions and map your custom ROI.</div>
+            <div className="flex flex-col gap-5">
+              {/* Pricing inputs for Time-to-ROI */}
+              <div className="rounded-2xl border-2 border-gray-200/60 bg-white/90 p-5 shadow-lg">
+                <div className="text-sm font-semibold text-gray-900 mb-2">Pricing (for Time-to-ROI)</div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <SimpleMoneyInput
+                    label="Setup Fee (one-time)"
+                    value={setupFee}
+                    onChange={setSetupFee}
+                  />
+                  <SimpleMoneyInput
+                    label="Monthly Fee (TMAP support)"
+                    value={monthlyFee}
+                    onChange={setMonthlyFee}
+                  />
                 </div>
-                <a
-                  href="/strategy-call"
-                  className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg rounded-xl font-bold text-white px-5 py-3"
-                >
-                  Get Your Custom AI Roadmap
-                </a>
+              </div>
+
+              {/* Top stats */}
+              <div className="grid sm:grid-cols-2 gap-5">
+                <RoiStat title="Hours Saved / Month" value={`${fmtInt(impact.monthlyHoursSaved)} hrs`} tone="blue" />
+                <RoiStat title="Staff Cost Savings / Month" value={fmtCurrency(impact.staffCostSavings)} tone="green" />
+                <RoiStat title="Incremental Revenue / Month" value={fmtCurrency(impact.revenueLift)} tone="orange" />
+                <RoiStat title="Total Monthly Impact" value={fmtCurrency(impact.totalMonthlyImpact)} tone="green" emphasize />
+              </div>
+
+              {/* Breakdown */}
+              <div className="rounded-2xl border-2 border-gray-200/60 bg-white/80 backdrop-blur-sm p-5 shadow-lg">
+                <div className="text-sm font-semibold text-gray-900 mb-2">Breakdown</div>
+                <div className="divide-y divide-gray-100">
+                  {Object.entries(impact.breakdown).map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between py-2 text-sm">
+                      <span className="text-gray-700">{k}</span>
+                      <span className="font-semibold text-gray-900">{fmtInt(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Annual + Assumptions + Time to ROI */}
+              <div className="grid sm:grid-cols-3 gap-5">
+                <div className="rounded-2xl border-2 border-gray-200/60 bg-gradient-to-br from-slate-50 to-gray-50 p-5 shadow-lg">
+                  <div className="text-sm font-semibold text-gray-900 mb-1">Annual Impact</div>
+                  <div className="text-2xl font-bold text-gray-900">{fmtCurrency(impact.annualImpact)}</div>
+                  <div className="text-xs text-gray-600 mt-2">Total value delivered per year</div>
+                </div>
+
+                <div className="rounded-2xl border-2 border-gray-200/60 bg-gradient-to-br from-emerald-50 to-green-50 p-5 shadow-lg">
+                  <div className="text-sm font-semibold text-gray-900 mb-1">Time to ROI</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {timeToROI === Infinity ? "N/A" : timeToROI <= 1 ? "Under 1 month" : `${timeToROI} months`}
+                  </div>
+                  <div className="text-xs text-gray-600 mt-2">
+                    Based on {fmtCurrency(setupFee)} setup and {fmtCurrency(monthlyFee)}/mo.
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border-2 border-gray-200/60 bg-white/80 backdrop-blur-sm p-5 shadow-lg">
+                  <div className="text-sm font-semibold text-gray-900 mb-2">Assumptions</div>
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    {impact.assumptions.map((a, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="mt-[7px] inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <span>{a}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="rounded-2xl border-2 border-gray-200/60 bg-white/80 backdrop-blur-sm p-5 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">Ready to get precise numbers?</div>
+                    <div className="text-sm text-gray-600">We’ll validate assumptions against your actual data and map a custom ROI.</div>
+                  </div>
+                  <a
+                    href="/strategy-call"
+                    className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg rounded-xl font-bold text-white px-5 py-3"
+                  >
+                    Get Your Custom AI Roadmap
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -613,11 +922,9 @@ export default function PremiumROI() {
   );
 }
 
-/* =========================================================================
-   UI Components
-   ========================================================================= */
-
-// Premium pill-style industry tabs (matches your screenshot vibe)
+/* =========================
+   UI bits
+   ========================= */
 function IndustryTabs({
   value,
   onChange,
@@ -630,7 +937,7 @@ function IndustryTabs({
   return (
     <div className="w-full">
       <div className="mx-auto max-w-5xl rounded-[28px] border border-gray-200 bg-white/80 backdrop-blur-sm shadow-lg px-2 py-2">
-      <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-wrap gap-2 justify-center">
           {options.map((o) => {
             const active = value === o.key;
             return (
@@ -655,7 +962,69 @@ function IndustryTabs({
   );
 }
 
-// Clearable number input (fixes the `030` issue)
+function ProfileToggle({ value, onChange }: { value: ProfileKey; onChange: (v: ProfileKey) => void }) {
+  const opts: { key: ProfileKey; label: string }[] = [
+    { key: "conservative", label: "Conservative" },
+    { key: "realistic", label: "Realistic" },
+    { key: "aggressive", label: "Aggressive" },
+  ];
+  return (
+    <div className="rounded-full border border-gray-200 bg-white/90 shadow-sm p-1 flex">
+      {opts.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            className={[
+              "px-3 py-1.5 rounded-full text-sm font-semibold transition-colors",
+              active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-gray-50",
+            ].join(" ")}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SimpleMoneyInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  const [local, setLocal] = useState<string>(() => (Number.isFinite(value) ? String(value) : ""));
+  useEffect(() => setLocal(Number.isFinite(value) ? String(value) : ""), [value]);
+
+  const onInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const t = e.target.value;
+    setLocal(t);
+    const n = Number(t);
+    if (!Number.isNaN(n)) onChange(n);
+    if (t === "") onChange(0);
+  };
+
+  return (
+    <label className="block">
+      <span className="block text-sm font-medium text-black mb-1">{label}</span>
+      <input
+        type="number"
+        min={0}
+        step={100}
+        value={local}
+        onChange={onInput}
+        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white text-gray-900 placeholder-gray-500"
+        placeholder="0"
+      />
+    </label>
+  );
+}
+
 function InputField({
   field,
   value,
@@ -666,24 +1035,20 @@ function InputField({
   onChange: (value: number) => void;
 }) {
   const [local, setLocal] = useState<string>(() => (Number.isFinite(value) ? String(value) : ""));
+  useEffect(() => setLocal(Number.isFinite(value) ? String(value) : ""), [value]);
 
-  useEffect(() => {
-    setLocal(Number.isFinite(value) ? String(value) : "");
-  }, [value]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setLocal(val);
-    const n = Number(val);
+  const onInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const t = e.target.value;
+    setLocal(t);
+    const n = Number(t);
     if (!Number.isNaN(n)) onChange(n);
-    if (val === "") onChange(0); // allows full clear without NaN in calc
+    if (t === "") onChange(0);
   };
 
   return (
     <div>
       <label className="block text-sm font-medium text-black mb-1">
-        {field.label}{" "}
-        {field.suffix ? <span className="text-gray-900">({field.suffix})</span> : null}
+        {field.label} {field.suffix ? <span className="text-gray-900">({field.suffix})</span> : null}
       </label>
       <input
         type="number"
@@ -692,11 +1057,9 @@ function InputField({
         max={field.max}
         step={field.step || 1}
         value={local}
-        onChange={handleChange}
+        onChange={onInput}
         placeholder="0"
-        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl 
-focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 
-transition-all duration-200 bg-white text-gray-900 placeholder-gray-700"
+        className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white text-gray-900 placeholder-gray-600"
       />
       {field.hint && <p className="text-xs text-gray-500 mt-1">{field.hint}</p>}
     </div>

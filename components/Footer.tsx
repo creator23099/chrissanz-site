@@ -33,7 +33,7 @@ export default function Footer() {
             <div className="order-3 lg:order-3">
               <h4 className="text-white font-semibold mb-4">Company</h4>
               <ul className="space-y-2">
-                <li><a className="hover:text-white" href="/about">About Chris</a></li>
+                <li><a className="hover:text-white" href="/about">About Our Mission</a></li>
                 <li><a className="hover:text-white" href="/case-studies">Case Studies</a></li>
                 <li><a className="hover:text-white" href="/docs">Docs</a></li>
                 <li><a className="hover:text-white" href="/strategy-call">Strategy Call</a></li>
