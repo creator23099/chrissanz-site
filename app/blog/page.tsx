@@ -1,10 +1,15 @@
 // app/blog/page.tsx
-import { fetchPosts } from "@/lib/posts";
 import BlogHub from "@/components/BlogHub";
-
-export const revalidate = 300;
+import { fetchPosts } from "@/lib/posts";
 
 export default async function Page() {
-  const posts = await fetchPosts();
+  const raw = await fetchPosts();
+
+  // Ensure tags is always an array
+  const posts = raw.map((p) => ({
+    ...p,
+    tags: Array.isArray(p.tags) ? p.tags : p.tags ? [p.tags] : [],
+  }));
+
   return <BlogHub posts={posts} />;
 }
