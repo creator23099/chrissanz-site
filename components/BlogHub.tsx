@@ -3,9 +3,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { Post } from "@/types/post"; // ✅ single source of truth
+import type { Post as SourcePost } from "@/lib/posts"; // data shape coming from lib/posts
 
-// Category pills shown in the UI (you can add more if you like)
+// UI type (normalized tags[], optional UI-only fields)
 type Category =
   | "Automation"
   | "Workflows"
@@ -13,9 +13,15 @@ type Category =
   | "Playbooks"
   | "Case Studies"
   | "Español"
-  | "Messaging"
-  | "Content Ops"
-  | "General";
+  | (string & {});
+
+type ViewPost = Omit<SourcePost, "tags" | "category" | "published_at"> & {
+  tags: string[];       // normalized by app/blog/page.tsx
+  category?: Category;  // optional for UI chips
+  date?: string;        // optional ISO date for display
+  coverImage?: string;  // optional image
+  readTimeMin?: number; // optional read time
+};
 
 const CATS: Array<{ id: Category | "All"; color: string }> = [
   { id: "All",          color: "border-slate-300" },
@@ -27,11 +33,10 @@ const CATS: Array<{ id: Category | "All"; color: string }> = [
   { id: "Español",      color: "border-rose-300" },
 ];
 
-export default function BlogHub({ posts }: { posts: Post[] }) {
+export default function BlogHub({ posts }: { posts: ViewPost[] }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<"All" | Category>("All");
 
-  // Search + category filter (assumes tags are already normalized to string[])
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return posts.filter((p) => {
@@ -45,7 +50,6 @@ export default function BlogHub({ posts }: { posts: Post[] }) {
     });
   }, [posts, q, cat]);
 
-  // Pagination
   const [page, setPage] = useState(1);
   const PAGE = 9;
   const total = filtered.length;
@@ -131,9 +135,9 @@ export default function BlogHub({ posts }: { posts: Post[] }) {
                         {featured.category}
                       </span>
                     )}
-                    {featured.published_at && (
-                      <time dateTime={featured.published_at}>
-                        {new Date(featured.published_at).toLocaleDateString()}
+                    {featured.date && (
+                      <time dateTime={featured.date}>
+                        {new Date(featured.date).toLocaleDateString()}
                       </time>
                     )}
                     {featured.readTimeMin && <span>• {featured.readTimeMin} min</span>}
@@ -198,10 +202,8 @@ export default function BlogHub({ posts }: { posts: Post[] }) {
                         {p.category}
                       </span>
                     )}
-                    {p.published_at && (
-                      <time dateTime={p.published_at}>
-                        {new Date(p.published_at).toLocaleDateString()}
-                      </time>
+                    {p.date && (
+                      <time dateTime={p.date}>{new Date(p.date).toLocaleDateString()}</time>
                     )}
                     {p.readTimeMin && <span>• {p.readTimeMin} min</span>}
                   </div>
