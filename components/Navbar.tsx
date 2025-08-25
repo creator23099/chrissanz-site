@@ -14,7 +14,7 @@ const navLinks = [
 ];
 
 const industries = [
-  { label: "Med Spas", href: "/industries/med-spa" },
+  { label: "Med Spas", href: "/industries/med-spas" },
   { label: "Contractors", href: "/industries/contractors" },
   { label: "Lawyers", href: "/industries/lawyers" },
   { label: "Dentists & Specialty", href: "/industries/dentistry" },
