@@ -55,7 +55,7 @@ function CountUpSpan({
               entries.forEach((e) => {
                 if (e.isIntersecting) {
                   run();
-                  io.disconnect();
+                  io?.disconnect();
                 }
               });
             },
@@ -63,11 +63,11 @@ function CountUpSpan({
           )
         : null;
 
-    if (io) io.observe(el);
+    if (io) io?.observe(el);
     else run();
 
     return () => {
-      if (io) io.disconnect();
+      if (io) io?.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
   }, [to, suffix, duration]);
