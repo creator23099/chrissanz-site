@@ -3,35 +3,35 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { Post } from "@/types/post"; // ✅ single source of truth
 
-export type Post = {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  coverImage?: string;
-  author?: string;
-  date?: string;        // ISO
-  tags?: string[];
-  category?: "Automation" | "Workflows" | "AI News" | "Playbooks" | "Case Studies" | "Español";
-  language?: "en" | "es";
-  readTimeMin?: number;
-};
+// Category pills shown in the UI (you can add more if you like)
+type Category =
+  | "Automation"
+  | "Workflows"
+  | "AI News"
+  | "Playbooks"
+  | "Case Studies"
+  | "Español"
+  | "Messaging"
+  | "Content Ops"
+  | "General";
 
-const CATS: Array<{ id: NonNullable<Post["category"]> | "All"; color: string }> = [
-  { id: "All",         color: "border-slate-300" },
-  { id: "Automation",  color: "border-blue-300" },
-  { id: "Workflows",   color: "border-emerald-300" },
-  { id: "AI News",     color: "border-indigo-300" },
-  { id: "Playbooks",   color: "border-amber-300" },
-  { id: "Case Studies",color: "border-purple-300" },
-  { id: "Español",     color: "border-rose-300" },
+const CATS: Array<{ id: Category | "All"; color: string }> = [
+  { id: "All",          color: "border-slate-300" },
+  { id: "Automation",   color: "border-blue-300" },
+  { id: "Workflows",    color: "border-emerald-300" },
+  { id: "AI News",      color: "border-indigo-300" },
+  { id: "Playbooks",    color: "border-amber-300" },
+  { id: "Case Studies", color: "border-purple-300" },
+  { id: "Español",      color: "border-rose-300" },
 ];
 
 export default function BlogHub({ posts }: { posts: Post[] }) {
   const [q, setQ] = useState("");
-  const [cat, setCat] = useState<"All" | NonNullable<Post["category"]>>("All");
+  const [cat, setCat] = useState<"All" | Category>("All");
 
+  // Search + category filter (assumes tags are already normalized to string[])
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return posts.filter((p) => {
@@ -45,6 +45,7 @@ export default function BlogHub({ posts }: { posts: Post[] }) {
     });
   }, [posts, q, cat]);
 
+  // Pagination
   const [page, setPage] = useState(1);
   const PAGE = 9;
   const total = filtered.length;
@@ -130,9 +131,9 @@ export default function BlogHub({ posts }: { posts: Post[] }) {
                         {featured.category}
                       </span>
                     )}
-                    {featured.date && (
-                      <time dateTime={featured.date}>
-                        {new Date(featured.date).toLocaleDateString()}
+                    {featured.published_at && (
+                      <time dateTime={featured.published_at}>
+                        {new Date(featured.published_at).toLocaleDateString()}
                       </time>
                     )}
                     {featured.readTimeMin && <span>• {featured.readTimeMin} min</span>}
@@ -197,8 +198,10 @@ export default function BlogHub({ posts }: { posts: Post[] }) {
                         {p.category}
                       </span>
                     )}
-                    {p.date && (
-                      <time dateTime={p.date}>{new Date(p.date).toLocaleDateString()}</time>
+                    {p.published_at && (
+                      <time dateTime={p.published_at}>
+                        {new Date(p.published_at).toLocaleDateString()}
+                      </time>
                     )}
                     {p.readTimeMin && <span>• {p.readTimeMin} min</span>}
                   </div>
