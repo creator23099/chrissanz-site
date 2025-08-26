@@ -46,7 +46,7 @@ type TeamMember = {
 };
 
 /* ===== Brand ===== */
-const BRAND = "Your Brand Name"; // update this when you rebrand
+const BRAND = "Tropiq Automations"; // update this when you rebrand
 
 /* ===== Timeline (refined, “we” voice, accurate attribution) ===== */
 const milestones: Milestone[] = [

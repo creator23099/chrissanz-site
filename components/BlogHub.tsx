@@ -64,10 +64,10 @@ export default function BlogHub({ posts }: { posts: ViewPost[] }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide">The Blog</p>
-            <h1 className="mt-2 text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900">
+            <h1 className="mt-2 text-4xl md:text-6xl font-bold leading-[1.25] md:leading-[1.18] bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900">
               Automation, workflows, and AI that grows revenue
             </h1>
-            <p className="mt-4 text-lg text-slate-700">
+            <p className="mt-5 text-lg text-slate-700">
               Deep dives, teardown playbooks, and practical news from the front lines of AI-powered
               operations. Actionable content to save hours and compound growth.
             </p>
@@ -81,7 +81,7 @@ export default function BlogHub({ posts }: { posts: ViewPost[] }) {
                 value={q}
                 onChange={(e) => { setQ(e.target.value); setPage(1); }}
                 placeholder='Search posts, e.g. "WhatsApp bot"'
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-10 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-10 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Search blog posts"
               />
               {!!q && (
