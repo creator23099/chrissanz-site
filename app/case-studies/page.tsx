@@ -77,7 +77,7 @@ function clsx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-/** ---------- Metadata (optional) ---------- */
+/** ---------- Metadata ---------- */
 export const metadata = {
   title: "Case Studies • Tropiq Automations",
   description:
@@ -85,14 +85,11 @@ export const metadata = {
 };
 
 /** ---------- Page Component (DEFAULT EXPORT) ---------- */
-export default function CaseStudiesPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
-  const qParam = searchParams?.q;
-  const indParam = searchParams?.industry;
-  const pageParam = searchParams?.page;
+export default function CaseStudiesPage(props: any) {
+  const searchParams = (props && props.searchParams) || {};
+  const qParam = searchParams.q;
+  const indParam = searchParams.industry;
+  const pageParam = searchParams.page;
 
   const q = (Array.isArray(qParam) ? qParam[0] : qParam) ?? "";
   const industry = (Array.isArray(indParam) ? indParam[0] : indParam) ?? "All";
