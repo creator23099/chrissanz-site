@@ -217,7 +217,7 @@ export default function Pricing() {
       {/* Closing CTA */}
       <section className="py-20 bg-blue-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to move from ideas to impact?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready To Move From Ideas To Impact?</h2>
           <p className="text-xl text-blue-100 mb-8">
             We’ll map your highest-ROI automations, build a clear plan, and ship a working system quickly.
           </p>

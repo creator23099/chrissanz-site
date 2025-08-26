@@ -50,7 +50,7 @@ export default function EnhancedNavbar() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="text-2xl font-bold tracking-tight text-black">
-              ChrisSanz.com
+            TropiqAutomations.com
             </Link>
 
             {/* Desktop Navigation */}

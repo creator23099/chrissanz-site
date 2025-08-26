@@ -7,7 +7,7 @@ export default function Footer() {
   
             {/* Brand */}
             <div className="order-1 lg:order-1">
-              <h3 className="text-xl font-bold text-white mb-4">ChrisSanz.com</h3>
+              <h3 className="text-xl font-bold text-white mb-4">TropiqAutomations.com</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
                 AI automation expert helping<br />
                 businesses save time,<br />
@@ -84,7 +84,7 @@ export default function Footer() {
   
           {/* Signature */}
           <div className="border-t border-white/10 mt-10 pt-6 text-center text-gray-400 text-xs">
-            © {new Date().getFullYear()} ChrisSanz.com. All rights reserved. • AI Business Automation | Lead Response Systems | Process Optimization | Custom AI Development
+            © {new Date().getFullYear()} TropiqAutomations.com. All rights reserved. • AI Business Automation | Lead Response Systems | Process Optimization | Custom AI Development
           </div>
         </div>
       </footer>
