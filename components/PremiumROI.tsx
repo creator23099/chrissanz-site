@@ -879,7 +879,7 @@ export default function PremiumROI() {
                 <div className="rounded-2xl border-2 border-gray-200/60 bg-gradient-to-br from-emerald-50 to-green-50 p-5 shadow-lg">
                   <div className="text-sm font-semibold text-gray-900 mb-1">Time to ROI</div>
                   <div className="text-2xl font-bold text-gray-900">
-                    {timeToROI === Infinity ? "N/A" : timeToROI <= 1 ? "Under 1 month" : `${timeToROI} months`}
+                    {timeToROI === Infinity ? "N/A" : timeToROI <= 1 ? "Under 1 month once fully integrated" : `${timeToROI} months`}
                   </div>
                   <div className="text-xs text-gray-600 mt-2">
                     Based on {fmtCurrency(setupFee)} setup and {fmtCurrency(monthlyFee)}/mo.

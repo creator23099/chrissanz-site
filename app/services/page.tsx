@@ -135,7 +135,7 @@ export default function Pricing() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">AI Development Partner Package</h2>
           <p className="text-lg text-gray-700">
-            At ChrisSanz, we act as an extension of your team — a true partner in uncovering and executing the highest-ROI
+            At Tropiq Automations, we act as an extension of your team — a true partner in uncovering and executing the highest-ROI
             opportunities for automation. We don’t just deliver a system and walk away. We design, launch, and continuously refine
             intelligent workflows that free up hours each week, sharpen operations, and create lasting capacity for growth.
             With us, you gain more than automation. You gain a dedicated AI partner committed to measurable outcomes,
