@@ -9,8 +9,8 @@ const navLinks = [
   { label: "Industries", href: "/industries" },
   { label: "About", href: "/about" },
   { label: "Case Studies", href: "/case-studies" },
-  { label: "Blog", href: "/blog" },
-  { label: "Docs", href: "/docs" },
+  { label: "Blog", href: "/guarantee" },
+  { label: "Docs", href: "/faq" },
 ];
 
 const industries = [
@@ -30,6 +30,17 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    const root = document.documentElement;
+    if (mobileOpen) {
+      root.classList.add("overflow-hidden", "touch-pan-y");
+    } else {
+      root.classList.remove("overflow-hidden", "touch-pan-y");
+    }
+    return () => root.classList.remove("overflow-hidden", "touch-pan-y");
+  }, [mobileOpen]);
+
   // Desktop dropdown helpers
   const openNow = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -44,31 +55,23 @@ export default function Navbar() {
     setIndOpen((v) => !v);
   };
 
-  // Lock body scroll when mobile drawer is open
-  useEffect(() => {
-    const { documentElement, body } = document;
-    if (mobileOpen) {
-      const prev = body.style.overflow;
-      body.style.overflow = "hidden";
-      documentElement.style.scrollBehavior = "auto";
-      return () => {
-        body.style.overflow = prev;
-        documentElement.style.scrollBehavior = "";
-      };
-    }
-  }, [mobileOpen]);
-
-  const closeMobile = () => setMobileOpen(false);
+  // Close all menus after clicking a link (mobile + desktop dropdown)
+  const handleNavClick = () => {
+    setMobileOpen(false);
+    setIndOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-lg border-b border-gray-100 shadow-sm">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex items-center justify-between gap-2 sm:gap-4">
-          {/* Left: Hamburger (mobile) */}
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Top bar */}
+        <div className="flex items-center py-3">
+          {/* Hamburger (mobile only, left) */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+            className="md:hidden mr-2 p-2 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {mobileOpen ? (
@@ -79,18 +82,18 @@ export default function Navbar() {
             </svg>
           </button>
 
-          {/* Center: Brand (allow truncation to avoid crowding) */}
+          {/* Logo (always left) */}
           <Link
             href="/"
-            className="flex-1 min-w-0 text-lg sm:text-xl font-bold tracking-tight text-blue-600 hover:text-blue-700 transition-colors truncate"
+            className="text-2xl font-bold tracking-tight text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap"
             aria-label="Tropiq Automations"
-            title="Tropiq Automations"
+            onClick={handleNavClick}
           >
             Tropiq Automations
           </Link>
 
-          {/* Desktop Nav (hidden on mobile) */}
-          <ul className="hidden md:flex items-center gap-6 text-base font-medium">
+          {/* Desktop nav (next to logo) */}
+          <ul className="hidden md:flex items-center gap-7 ml-8 text-base font-medium">
             {navLinks.map((link) =>
               link.label === "Industries" ? (
                 <li
@@ -139,6 +142,7 @@ export default function Navbar() {
                           <Link
                             href={industry.href}
                             className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg mx-2 transition-colors"
+                            onClick={handleNavClick}
                           >
                             {industry.label}
                           </Link>
@@ -152,6 +156,7 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     className="text-gray-700 hover:text-blue-600 transition-colors"
+                    onClick={handleNavClick}
                   >
                     {link.label}
                   </Link>
@@ -160,93 +165,116 @@ export default function Navbar() {
             )}
           </ul>
 
-          {/* Right: CTAs */}
-          {/* Large CTA appears only on large screens to avoid crowding */}
+          {/* Spacer pushes CTA to the far right on all sizes */}
+          <div className="flex-1" />
+
+          {/* CTA (desktop & mobile) */}
           <Link
             href="/strategy-call"
-            className="hidden lg:inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white
-                       bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl
-                       transform hover:scale-105 transition-all duration-200 whitespace-nowrap"
+            className="inline-flex items-center gap-2 rounded-xl px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+            onClick={handleNavClick}
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             Book a Strategy Call
           </Link>
-
-          {/* Compact CTA for < lg */}
-          <Link
-            href="/strategy-call"
-            className="md:inline-flex lg:hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white
-                       bg-blue-600 hover:bg-blue-700 shadow-md transition-all duration-200 whitespace-nowrap"
-          >
-            Book Call
-          </Link>
         </div>
       </nav>
 
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div className="md:hidden bg-white border-b border-gray-100 shadow-lg">
-          <div className="px-4 sm:px-6 py-4">
-            {/* Mobile drawer CTA */}
-            <Link
-              href="/strategy-call"
-              onClick={closeMobile}
-              className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white
-                         bg-blue-600 hover:bg-blue-700 shadow-md transition-colors"
-            >
-              Book a Strategy Call
-            </Link>
+      {/* Mobile drawer */}
+      <div
+        className={cx(
+          "md:hidden fixed inset-0 z-40 transition-opacity",
+          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setMobileOpen(false)}
+      >
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/20" />
 
-            <ul className="space-y-2">
-              {navLinks.map((link) => (
-                <li key={link.href}>
-                  {link.label === "Industries" ? (
-                    <div>
-                      <button
-                        onClick={() => setIndOpen((v) => !v)}
-                        className="w-full flex items-center justify-between py-2 px-3 rounded-lg text-gray-700 hover:bg-gray-50"
+        {/* Panel */}
+        <div
+          className={cx(
+            "absolute left-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-2xl border-r border-gray-100",
+            "transition-transform duration-300",
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-lg font-semibold text-gray-900">Menu</span>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-2 rounded-lg text-gray-600 hover:bg-gray-50"
+              aria-label="Close menu"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="px-6 py-4">
+            <ul className="space-y-1">
+              {navLinks.map((link) =>
+                link.label === "Industries" ? (
+                  <li key={link.href} className="pt-1">
+                    <button
+                      onClick={() => setIndOpen((v) => !v)}
+                      className="w-full flex items-center justify-between py-2.5 px-2 rounded-lg text-gray-800 hover:bg-gray-50"
+                      aria-expanded={indOpen}
+                    >
+                      <span>Industries</span>
+                      <svg
+                        className={cx("h-4 w-4 transition-transform", indOpen && "rotate-180")}
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
                       >
-                        Industries
-                        <svg
-                          className={cx("h-4 w-4 transition-transform", indOpen && "rotate-180")}
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
-                        </svg>
-                      </button>
-                      {indOpen && (
-                        <div className="mt-1 ml-4 space-y-1">
-                          {industries.map((ind) => (
-                            <Link
-                              key={ind.href}
-                              href={ind.href}
-                              onClick={closeMobile}
-                              className="block py-2 px-3 text-sm text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
-                            >
-                              {ind.label}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
+                        <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
+                      </svg>
+                    </button>
+                    {indOpen && (
+                      <div className="mt-1 ml-2 space-y-1">
+                        {industries.map((ind) => (
+                          <Link
+                            key={ind.href}
+                            href={ind.href}
+                            className="block py-2 px-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700"
+                            onClick={handleNavClick}
+                          >
+                            {ind.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                ) : (
+                  <li key={link.href}>
                     <Link
                       href={link.href}
-                      onClick={closeMobile}
-                      className="block py-2 px-3 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                      className="block py-2.5 px-2 rounded-lg text-gray-800 hover:bg-gray-50"
+                      onClick={handleNavClick}
                     >
                       {link.label}
                     </Link>
-                  )}
-                </li>
-              ))}
+                  </li>
+                )
+              )}
             </ul>
+
+            <div className="mt-6">
+              <Link
+                href="/strategy-call"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700"
+                onClick={handleNavClick}
+              >
+                Book a Strategy Call
+              </Link>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }
