@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Footer from "@/components/Footer";
 
 /* ===== Types ===== */
 type Milestone = {
@@ -41,14 +40,13 @@ type TeamMember = {
   blurb: string;
   metrics?: string[];
   roleColor: "blue" | "green" | "purple";
-  // Optional: when you have real headshots, replace placeholderSrc with your image path
   placeholderSrc?: string;
 };
 
 /* ===== Brand ===== */
-const BRAND = "Tropiq Automations"; // update this when you rebrand
+const BRAND = "Tropiq Automations";
 
-/* ===== Timeline (refined, “we” voice, accurate attribution) ===== */
+/* ===== Timeline ===== */
 const milestones: Milestone[] = [
   {
     year: "2018",
@@ -80,7 +78,7 @@ const milestones: Milestone[] = [
   },
 ];
 
-/* ===== Stats (cred set) ===== */
+/* ===== Stats ===== */
 const stats: Stat[] = [
   {
     number: "300+",
@@ -180,7 +178,7 @@ const team: TeamMember[] = [
     blurb:
       "Over a decade of watching businesses pay inefficiency taxes—now focused on helping leaders avoid them while driving growth with measurable ROI.",
     roleColor: "blue",
-    placeholderSrc: "", // add headshot src when ready
+    placeholderSrc: "",
   },
   {
     name: "Zaine",
@@ -307,10 +305,8 @@ function TeamCard({ member }: { member: TeamMember }) {
 
   return (
     <div className="bg-white p-8 rounded-xl border border-gray-200 hover:shadow-xl transition-all duration-300">
-      {/* Headshot placeholder */}
       <div className="flex justify-center mb-6">
         <div className="w-28 h-28 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-          {/* When you have headshots: replace this wrapper with <img src={member.placeholderSrc} className="w-full h-full object-cover" alt={member.name} /> */}
           <span className="text-xs text-gray-500 text-center px-3">Upload headshot</span>
         </div>
       </div>
@@ -341,8 +337,6 @@ function TeamCard({ member }: { member: TeamMember }) {
 
 /* ===== Main Component ===== */
 export default function About() {
-  const [activeTab, setActiveTab] = useState<"story" | "approach">("story");
-
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
@@ -353,26 +347,37 @@ export default function About() {
             {/* Left */}
             <div>
               <div className="mb-8">
-                <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider">
+                {/* SINGLE-LINE PILL ON MOBILE */}
+                <span
+                  className="inline-block whitespace-nowrap w-fit
+                             bg-gradient-to-r from-green-400 to-blue-500 text-white
+                             uppercase font-bold tracking-wider leading-none
+                             px-3 py-1 text-[11px]
+                             md:px-4 md:py-2 md:text-sm"
+                >
                   Unlocking Growth Through AI Partnership
                 </span>
               </div>
+
               <h1 className="text-5xl md:text-7xl font-black text-white mb-8 leading-tight">
                 Build Systems That
                 <span className="block bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
                   Create Advantage
                 </span>
               </h1>
+
               <p className="text-xl md:text-2xl text-gray-300 mb-6 leading-relaxed">
                 At <span className="font-semibold">{BRAND}</span>, we believe businesses shouldn’t be held back by inefficiency.
                 Our team combines <strong>10+ years of hands-on AI automation</strong> with a technical track record of{" "}
                 <strong>300+ successful deployments</strong> across healthcare, legal, services, and operations.
               </p>
+
               <p className="text-lg text-blue-200 mb-10">
                 Founded by <span className="font-semibold">Chris Sanz</span> and engineered by{" "}
                 <span className="font-semibold">Zaine</span> and <span className="font-semibold">Hassan</span>, we don’t just build tools—
                 we engineer <em>business outcomes</em>: more revenue, less overhead, and measurable ROI.
               </p>
+
               <div className="flex flex-col sm:flex-row gap-6">
                 <a
                   href="/strategy-call"
@@ -387,6 +392,7 @@ export default function About() {
                   See Client Results
                 </a>
               </div>
+
               <div className="mt-12 grid grid-cols-2 gap-8">
                 <div className="text-center">
                   <div className="text-4xl font-black text-green-400">300+</div>
@@ -439,7 +445,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* Team Section (headshot-ready) */}
+      {/* Team Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
@@ -571,13 +577,11 @@ export default function About() {
           </div>
         </div>
       </section>
-
-      
     </div>
   );
 }
 
-/* ===== Small helper: tabs for Mission vs Approach (keeps code tidy) ===== */
+/* ===== Tabs (Mission vs Approach) ===== */
 function Tabs({ activeTabDefault = "story" as "story" | "approach" }) {
   const [activeTab, setActiveTab] = useState<"story" | "approach">(activeTabDefault);
 
